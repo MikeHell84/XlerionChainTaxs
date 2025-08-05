@@ -3,71 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xlerion BlockChain Gov - Sistema de Trazabilidad IVA v2.1</title>
+    <title data-translate="app-title">Xlerion BlockChain Gov</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.s" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
-            color: #f7fafc;
-            min-height: 100vh;
-        }
-
-        .glass-effect {
-            background: rgba(22, 27, 34, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(48, 54, 61, 0.3);
-        }
-        
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-        }
-
-        .tab-btn.active {
-            border-bottom: 2px solid #3b82f6;
-            color: #3b82f6;
-        }
-
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            z-index: 100;
-        }
-
-        .notification.show {
-            opacity: 1;
-        }
-        
-        .gradient-text {
-            background: linear-gradient(45deg, #3b82f6, #60a5fa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-        }
-    </style>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Enlace a tu archivo de estilos personalizado (NUEVO) -->
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body class="flex flex-col items-center p-8">
 
@@ -83,7 +25,7 @@
     <div id="loading-overlay" class="loading-overlay hidden">
         <div class="flex flex-col items-center">
             <div class="w-12 h-12 rounded-full animate-spin border-4 border-dashed border-blue-500 border-t-transparent"></div>
-            <p class="text-white text-lg mt-4">Procesando transacción...</p>
+            <p data-translate="processing-transaction" class="text-white text-lg mt-4">Procesando transacción...</p>
         </div>
     </div>
 
@@ -93,40 +35,49 @@
         <header class="flex justify-between items-center w-full pb-4 border-b border-gray-700">
             <div class="flex items-center space-x-4">
                 <i class="fas fa-cube text-4xl text-blue-500"></i>
-                <h1 class="text-3xl font-bold">Xlerion BlockChain Gov</h1>
+                <h1 data-translate="app-title" class="text-3xl font-bold">Xlerion BlockChain Gov</h1>
             </div>
-            <div id="user-info" class="flex items-center space-x-4 hidden">
-                <p class="text-gray-300">Bienvenido, <span id="user-name" class="font-semibold text-white"></span></p>
-                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition-colors">
-                    <i class="fas fa-sign-out-alt"></i>
+            <div class="flex items-center space-x-4">
+                <button id="open-info-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors">
+                    <i class="fas fa-info-circle mr-2"></i><span data-translate="info-button">Información</span>
                 </button>
+                <!-- Botón de Idioma (NUEVO) -->
+                <button id="language-toggle-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl transition-colors">
+                    <i class="fas fa-language mr-2"></i><span id="current-language-text">English</span>
+                </button>
+                <div id="user-info" class="flex items-center space-x-4 hidden">
+                    <p class="text-gray-300" data-translate="user-welcome-prefix">Bienvenido, <span id="user-name" class="font-semibold text-white"></span></p>
+                    <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition-colors" data-translate="logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
         <!-- Contenedor de autenticación (Login/Register) -->
         <div id="auth-container" class="flex flex-col items-center justify-center p-8 rounded-xl glass-effect text-center max-w-md mx-auto">
             <img src="Xlerion_ch_t.png?text=Logo" alt="Logo de la aplicación" class="mb-6 rounded-full">
-            <h2 class="text-2xl font-bold mb-2">¡Bienvenido!</h2>
-            <p class="text-gray-400 mb-6">Inicia sesión o regístrate para continuar.</p>
+            <h2 data-translate="welcome-message" class="text-2xl font-bold mb-2">¡Bienvenido!</h2>
+            <p data-translate="auth-subtitle" class="text-gray-400 mb-6">Inicia sesión o regístrate para continuar.</p>
 
             <!-- Formulario de Login -->
             <form id="login-form" class="w-full space-y-4">
-                <input type="text" id="login-username" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <input type="password" id="login-password" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Iniciar Sesión</button>
+                <input type="text" id="login-username" data-translate="login-username-placeholder" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="password" id="login-password" data-translate="login-password-placeholder" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <button type="submit" data-translate="login-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Iniciar Sesión</button>
                 <div class="text-gray-400 mt-4">
-                    ¿No tienes una cuenta? <a href="#" id="show-register" class="text-blue-500 hover:underline font-semibold">Regístrate</a>
+                    <span data-translate="no-account-text">¿No tienes una cuenta?</span> <a href="#" id="show-register" data-translate="register-link" class="text-blue-500 hover:underline font-semibold">Regístrate</a>
                 </div>
             </form>
 
             <!-- Formulario de Registro (inicialmente oculto) -->
             <form id="register-form" class="w-full space-y-4 hidden">
-                <input type="text" id="register-fullname" placeholder="Nombre completo" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <input type="text" id="register-username" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <input type="email" id="register-email" placeholder="Correo electrónico" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <input type="password" id="register-password" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Registrarse</button>
-                <button type="button" id="register-back" class="w-full text-gray-400 mt-4 hover:underline">Volver al Login</button>
+                <input type="text" id="register-fullname" data-translate="register-fullname-placeholder" placeholder="Nombre completo" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="register-username" data-translate="register-username-placeholder" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="email" id="register-email" data-translate="register-email-placeholder" placeholder="Correo electrónico" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="password" id="register-password" data-translate="register-password-placeholder" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <button type="submit" data-translate="register-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Registrarse</button>
+                <button type="button" id="register-back" data-translate="back-to-login" class="w-full text-gray-400 mt-4 hover:underline">Volver al Login</button>
             </form>
         </div>
 
@@ -134,41 +85,40 @@
         <div id="main-dashboard" class="hidden">
             <div class="bg-gray-900 rounded-xl glass-effect p-6 mb-8">
                 <div class="flex space-x-2 border-b border-gray-700 mb-6">
-                    <button data-tab="create-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold active">Crear Factura</button>
-                    <button data-tab="ledger-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Ledger</button>
-                    <button data-tab="search-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Búsqueda</button>
-                    <button data-tab="stats-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Estadísticas</button>
+                    <button data-tab="create-tab" data-translate="tab-create-invoice" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold active">Crear Factura</button>
+                    <button data-tab="ledger-tab" data-translate="tab-ledger" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Ledger</button>
+                    <button data-tab="search-tab" data-translate="tab-search" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Búsqueda</button>
+                    <button data-tab="stats-tab" data-translate="tab-stats" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Estadísticas</button>
                 </div>
                 
                 <div class="p-4">
                     <!-- Pestaña Crear Factura -->
                     <div id="create-tab" class="tab-content">
-                        <h3 class="text-xl font-bold mb-6">Registrar Nueva Factura</h3>
+                        <h3 data-translate="register-new-invoice-title" class="text-xl font-bold mb-6">Registrar Nueva Factura</h3>
                         <form id="invoice-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="invoice-number" class="block text-sm font-medium mb-2">Número de Factura</label>
+                                <label for="invoice-number" data-translate="invoice-number-label" class="block text-sm font-medium mb-2">Número de Factura</label>
                                 <input type="text" id="invoice-number" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                             <div>
-                                <label for="company-name" class="block text-sm font-medium mb-2">Nombre de Empresa</label>
+                                <label for="company-name" data-translate="company-name-label" class="block text-sm font-medium mb-2">Nombre de Empresa</label>
                                 <input type="text" id="company-name" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                             <div>
-                                <label for="company-nit" class="block text-sm font-medium mb-2">NIT de Empresa</label>
+                                <label for="company-nit" data-translate="company-nit-label" class="block text-sm font-medium mb-2">NIT de Empresa</label>
                                 <input type="text" id="company-nit" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                             <div>
-                                <label for="subtotal" class="block text-sm font-medium mb-2">Subtotal ($)</label>
-                                <input type="number" id="subtotal" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <label for="subtotal" data-translate="subtotal-label" class="block text-sm font-medium mb-2">Subtotal ($)</label>
+                                <input type="number" id="subtotal" step="0.01" min="0" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                             <div>
-                                <label for="iva-amount" class="block text-sm font-medium mb-2">Valor del IVA (19%)</label>
+                                <label for="iva-amount" data-translate="iva-amount-label" class="block text-sm font-medium mb-2">Valor del IVA (19%)</label>
                                 <input type="text" id="iva-amount" readonly class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 cursor-not-allowed">
                             </div>
                             <div class="md:col-span-2 mt-4">
-                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">
+                                <button type="submit" data-translate="add-invoice-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">
                                     <i class="fas fa-plus-circle mr-2"></i>
-                                    Añadir Factura al Blockchain
                                 </button>
                             </div>
                         </form>
@@ -177,10 +127,9 @@
                     <!-- Pestaña Ledger -->
                     <div id="ledger-tab" class="tab-content hidden">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold">Registro de Transacciones (Ledger)</h3>
-                            <button id="validate-blockchain" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-xl transition-colors">
+                            <h3 data-translate="ledger-title" class="text-xl font-bold">Registro de Transacciones (Ledger)</h3>
+                            <button id="validate-blockchain" data-translate="validate-blockchain-button" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-xl transition-colors">
                                 <i class="fas fa-fingerprint mr-2"></i>
-                                Validar Blockchain
                             </button>
                         </div>
                         <div id="blockchain-ledger" class="space-y-6">
@@ -190,20 +139,21 @@
 
                     <!-- Pestaña Búsqueda -->
                     <div id="search-tab" class="tab-content hidden">
-                        <h3 class="text-xl font-bold mb-6">Buscar Facturas</h3>
+                        <h3 data-translate="search-invoices-title" class="text-xl font-bold mb-6">Buscar Facturas</h3>
                         <form id="search-form" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" id="search-company" placeholder="Nombre de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <input type="text" id="search-nit" placeholder="NIT de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <input type="text" id="search-invoice" placeholder="Número de Factura" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <input type="text" id="search-company" data-translate="search-company-placeholder" placeholder="Nombre de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <input type="text" id="search-nit" data-translate="search-nit-placeholder" placeholder="NIT de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <input type="text" id="search-invoice" data-translate="search-invoice-placeholder" placeholder="Número de Factura" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                 <div class="grid grid-cols-2 gap-4">
+                                    <label for="search-date-from" data-translate="search-date-from-title" class="sr-only">Desde la fecha</label>
                                     <input type="date" id="search-date-from" title="Desde la fecha" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <label for="search-date-to" data-translate="search-date-to-title" class="sr-only">Hasta la fecha</label>
                                     <input type="date" id="search-date-to" title="Hasta la fecha" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                 </div>
                             </div>
-                            <button type="submit" id="search-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors mb-6">
+                            <button type="submit" id="search-button" data-translate="search-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors mb-6">
                                 <i class="fas fa-search mr-2"></i>
-                                Buscar
                             </button>
                         </form>
                         <div id="search-results" class="space-y-4">
@@ -213,31 +163,31 @@
 
                     <!-- Pestaña Estadísticas -->
                     <div id="stats-tab" class="tab-content hidden">
-                        <h3 class="text-xl font-bold mb-6">Estadísticas y Distribución del IVA</h3>
+                        <h3 data-translate="stats-title" class="text-xl font-bold mb-6">Estadísticas y Distribución del IVA</h3>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div class="glass-effect rounded-xl p-6">
-                                <h4 class="text-lg font-semibold mb-4">Resumen General</h4>
+                                <h4 data-translate="general-summary-title" class="text-lg font-semibold mb-4">Resumen General</h4>
                                 <div class="grid grid-cols-2 gap-4 text-center">
                                     <div class="p-4 rounded-lg bg-gray-800">
-                                        <p class="text-sm text-gray-400">Total de Facturas</p>
+                                        <p data-translate="total-invoices-label" class="text-sm text-gray-400">Total de Facturas</p>
                                         <p id="total-invoices" class="text-3xl font-bold text-blue-400">0</p>
                                     </div>
                                     <div class="p-4 rounded-lg bg-gray-800">
-                                        <p class="text-sm text-gray-400">IVA Recaudado</p>
+                                        <p data-translate="iva-collected-label" class="text-sm text-gray-400">IVA Recaudado</p>
                                         <p id="total-iva" class="text-2xl font-bold gradient-text">0</p>
                                     </div>
                                     <div class="p-4 rounded-lg bg-gray-800">
-                                        <p class="text-sm text-gray-400">Monto Total</p>
+                                        <p data-translate="total-amount-label" class="text-sm text-gray-400">Monto Total</p>
                                         <p id="total-amount" class="text-2xl font-bold gradient-text">0</p>
                                     </div>
                                     <div class="p-4 rounded-lg bg-gray-800">
-                                        <p class="text-sm text-gray-400">Promedio por Factura</p>
+                                        <p data-translate="avg-invoice-label" class="text-sm text-gray-400">Promedio por Factura</p>
                                         <p id="avg-invoice" class="text-2xl font-bold text-blue-400">0</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="glass-effect rounded-xl p-6">
-                                <h4 class="text-lg font-semibold mb-4">Distribución por Sectores</h4>
+                                <h4 data-translate="sector-distribution-title" class="text-lg font-semibold mb-4">Distribución por Sectores</h4>
                                 <canvas id="sector-chart" width="400" height="400"></canvas>
                                 <div id="sector-details" class="mt-6 space-y-3">
                                     <!-- Detalles de sectores -->
@@ -246,6 +196,56 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ventana Modal de Información y Términos Legales -->
+    <div id="info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-info-modal-btn" class="modal-close-btn">&times;</button>
+            <h2 data-translate="info-modal-title" class="text-2xl font-bold mb-6 gradient-text">Información del Sistema XlerionChainTaxs</h2>
+
+            <div class="mb-8">
+                <h3 data-translate="info-guide-title" class="text-xl font-bold mb-4">Guía Informativa: Uso y Expectativas en el Estado Colombiano</h3>
+                <p data-translate="info-guide-intro" class="mb-4">El sistema XlerionChainTaxs busca transformar la gestión fiscal en Colombia a través de la tecnología blockchain, ofreciendo un nuevo nivel de **transparencia y eficiencia**. A continuación, se detalla cómo se espera que este sistema sea utilizado y las expectativas de su impacto en el estado colombiano:</p>
+
+                <h4 data-translate="usage-title" class="text-lg font-semibold mb-2">Uso del Sistema</h4>
+                <ul class="list-decimal list-inside space-y-2 mb-4">
+                    <li data-translate="usage-1">**Registro de Transacciones Fiscales:** Cada factura, pago de impuestos y movimiento de fondos relacionados con el IVA será registrado como un bloque inmutable en la cadena. Esto incluye el subtotal, el valor del IVA y la empresa o entidad involucrada.</li>
+                    <li data-translate="usage-2">**Trazabilidad en Tiempo Real:** Las entidades gubernamentales y los ciudadanos podrán seguir el ciclo de vida de los fondos del IVA, desde su recaudación hasta su asignación final en proyectos específicos (salud, educación, infraestructura, etc.).</li>
+                    <li data-translate="usage-3">**Acceso Público y Auditoría:** La naturaleza descentralizada de la blockchain permitirá que cualquier persona acceda al registro público de transacciones, facilitando la auditoría ciudadana y la rendición de cuentas.</li>
+                    <li data-translate="usage-4">**Automatización con Contratos Inteligentes:** Se prevé el uso de contratos inteligentes para automatizar la distribución del IVA a los sectores predefinidos, reduciendo la intervención manual y los posibles errores o fraudes.</li>
+                </ul>
+
+                <h4 data-translate="expectations-title" class="text-lg font-semibold mb-2">Expectativas en el Estado Colombiano</h4>
+                <ul class="list-decimal list-inside space-y-2">
+                    <li data-translate="expectations-1">**Aumento de la Transparencia:** La principal expectativa es erradicar la opacidad en el manejo de los fondos públicos, permitiendo a los ciudadanos ver exactamente cómo se utilizan sus impuestos. Esto puede fortalecer la confianza pública en las instituciones.</li>
+                    <li data-translate="expectations-2">**Reducción de la Corrupción:** Al hacer las transacciones inmutables y públicamente verificables, se dificultan las prácticas corruptas, ya que cualquier desvío de fondos sería evidente en la cadena.</li>
+                    <li data-translate="expectations-3">**Optimización de la Gestión de Recursos:** La trazabilidad detallada permitirá al estado colombiano identificar ineficiencias en la asignación y ejecución de presupuestos, facilitando una toma de decisiones más informada.</li>
+                    <li data-translate="expectations-4">**Fomento de la Participación Ciudadana:** Con acceso a información clara y verificable, los ciudadanos podrán participar de manera más activa en la fiscalización y en el debate sobre las prioridades de gasto público.</li>
+                    <li data-translate="expectations-5">**Modernización de la Administración Pública:** La implementación de esta tecnología posicionará a Colombia como un líder en la adopción de soluciones innovadoras para la gobernanza, mejorando la eficiencia administrativa y la seguridad de los datos fiscales.</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 data-translate="legal-terms-title" class="text-xl font-bold mb-4">Términos Legales y Privacidad</h3>
+                <p data-translate="legal-terms-intro" class="mb-4 text-gray-300">Este sistema opera bajo los principios de la legislación colombiana e internacional en materia de protección de datos y transparencia. A continuación, se presentan los términos generales aplicables:</p>
+
+                <h4 data-translate="legal-1-title" class="text-lg font-semibold mb-2">1. Protección de Datos Personales (Colombia y Global)</h4>
+                <p data-translate="legal-1-content" class="text-gray-300 mb-2">La recopilación y procesamiento de datos personales se rige por la Ley 1581 de 2012 (Ley de Protección de Datos Personales de Colombia) y sus decretos reglamentarios. A nivel internacional, se consideran principios del Reglamento General de Protección de Datos (GDPR) de la Unión Europea, especialmente en lo que respecta a la minimización de datos y la seguridad. Los datos sensibles serán anonimizados o hasheados antes de ser registrados en la blockchain pública.</p>
+                
+                <h4 data-translate="legal-2-title" class="text-lg font-semibold mb-2">2. Transparencia y Acceso a la Información Pública</h4>
+                <p data-translate="legal-2-content" class="text-gray-300 mb-2">El sistema se alinea con la Ley 1712 de 2014 (Ley de Transparencia y del Derecho de Acceso a la Información Pública Nacional) de Colombia. La información fiscal registrada en la blockchain, que no sea de carácter personal o sensible, será accesible para el público con el fin de fomentar la rendición de cuentas y la auditoría ciudadana.</p>
+
+                <h4 data-translate="legal-3-title" class="text-lg font-semibold mb-2">3. Uso de la Tecnología Blockchain</h4>
+                <p data-translate="legal-3-content" class="text-gray-300 mb-2">La blockchain garantiza la inmutabilidad y la seguridad de los registros. Sin embargo, es importante entender que la información una vez registrada no puede ser alterada ni eliminada. Los usuarios son responsables de la veracidad de los datos que ingresan al sistema.</p>
+
+                <h4 data-translate="legal-4-title" class="text-lg font-semibold mb-2">4. Limitación de Responsabilidad</h4>
+                <p data-translate="legal-4-content" class="text-gray-300 mb-2">XlerionChainTaxs es una herramienta tecnológica para la gestión y trazabilidad fiscal. No constituye asesoría legal, contable o financiera. Los usuarios deben consultar a profesionales cualificados para cualquier decisión basada en la información del sistema.</p>
+
+                <h4 data-translate="legal-5-title" class="text-lg font-semibold mb-2">5. Jurisdicción</h4>
+                <p data-translate="legal-5-content" class="text-gray-300">Cualquier disputa legal relacionada con el uso de este sistema se regirá por las leyes de la República de Colombia.</p>
             </div>
         </div>
     </div>
