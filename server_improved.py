@@ -1,200 +1,259 @@
-# server_improved.py
-# Backend para Xlerion BlockChain Gov
-
 import os
-from flask import Flask, request, jsonify, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from werkzeug.security import generate_password_hash, check_password_hash
+import pymysql.cursors
+from dotenv import load_dotenv
 import hashlib
 import json
-from datetime import datetime
 
-# ===================================================================================
-# CONFIGURACIÓN DE LA APLICACIÓN FLASK
-# ===================================================================================
-app = Flask(__name__, static_folder='.', static_url_path='')
-CORS(app) # Habilita CORS para permitir peticiones desde el frontend
+# Cargar variables de entorno desde .env
+load_dotenv()
 
-# Configuración de la base de datos
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app = Flask(__name__)
+CORS(app) # Habilitar CORS para permitir solicitudes desde tu frontend
 
-db = SQLAlchemy(app)
+# --- Configuración de la Base de Datos ---
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'db': os.getenv('DB_NAME'),
+    'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor # Para obtener resultados como diccionarios
+}
 
-# ===================================================================================
-# MODELOS DE LA BASE DE DATOS (SQLAlchemy)
-# ===================================================================================
+# --- Funciones de Utilidad ---
 
-# --- Modelo de Usuario ---
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    fullname = db.Column(db.String(150), nullable=False)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+def get_db_connection():
+    """Establece y devuelve una conexión a la base de datos."""
+    try:
+        connection = pymysql.connect(**DB_CONFIG)
+        return connection
+    except Exception as e:
+        print(f"Error al conectar a la base de datos: {e}")
+        return None
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+def hash_password(password):
+    """Hashea una contraseña usando SHA-256."""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+# --- Rutas de la API ---
 
-# --- Modelo de Bloque (para persistencia) ---
-class BlockDB(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    index = db.Column(db.Integer, unique=True, nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    data = db.Column(db.Text, nullable=False) # Guardamos los datos de la factura como JSON
-    previous_hash = db.Column(db.String(64), nullable=False)
-    hash = db.Column(db.String(64), nullable=False, unique=True)
-    traceability = db.Column(db.Text, nullable=False) # Guardamos la trazabilidad como JSON
-
-# ===================================================================================
-# RUTAS DE LA API (Endpoints)
-# ===================================================================================
-
-# --- Endpoint de Registro de Usuario ---
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    if not data or not data.get('username') or not data.get('password') or not data.get('email') or not data.get('fullname'):
-        return jsonify({'message': 'Faltan datos'}), 400
-
-    if User.query.filter_by(username=data['username'].lower()).first():
-        return jsonify({'message': 'El nombre de usuario ya existe'}), 409
-    
-    if User.query.filter_by(email=data['email'].lower()).first():
-        return jsonify({'message': 'El correo electrónico ya está registrado'}), 409
-
-    new_user = User(
-        fullname=data['fullname'],
-        username=data['username'].lower(),
-        email=data['email'].lower()
-    )
-    new_user.set_password(data['password'])
-    db.session.add(new_user)
-    db.session.commit()
-
-    return jsonify({'message': 'Usuario registrado con éxito'}), 201
-
-# --- Endpoint de Inicio de Sesión ---
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({'message': 'Faltan datos'}), 400
-
-    user = User.query.filter_by(username=data['username'].lower()).first()
-
-    if not user or not user.check_password(data['password']):
-        return jsonify({'message': 'Credenciales incorrectas'}), 401
-
-    return jsonify({
-        'message': 'Inicio de sesión exitoso',
-        'user': {
-            'username': user.username,
-            'fullname': user.fullname
-        }
-    }), 200
-
-# --- Endpoint para obtener la cadena de bloques ---
-@app.route('/api/blockchain', methods=['GET'])
-def get_blockchain():
-    blocks_db = BlockDB.query.order_by(BlockDB.index).all()
-    chain = []
-    for block_db in blocks_db:
-        chain.append({
-            'index': block_db.index,
-            'timestamp': block_db.timestamp.isoformat(),
-            'data': json.loads(block_db.data),
-            'previous_hash': block_db.previous_hash,
-            'hash': block_db.hash,
-            'traceability': json.loads(block_db.traceability)
-        })
-    return jsonify(chain), 200
-
-# --- Endpoint para añadir una nueva factura (transacción) ---
-@app.route('/api/invoices', methods=['POST'])
-def add_invoice():
-    data = request.get_json()
-    required_keys = ['number', 'companyNit', 'companyName', 'subtotal', 'iva', 'createdBy']
-    if not all(k in data for k in required_keys):
-        return jsonify({'message': 'Datos de factura incompletos'}), 400
-    
-    last_block_db = BlockDB.query.order_by(BlockDB.index.desc()).first()
-    if not last_block_db:
-        return jsonify({'message': 'Error: No se encontró el bloque génesis en la base de datos'}), 500
-
-    new_index = last_block_db.index + 1
-    new_timestamp = datetime.utcnow()
-    
-    invoice_data = {key: data[key] for key in required_keys}
-    
-    traceability = [{
-        'status': 'Recibido por el Sistema',
-        'timestamp': new_timestamp.isoformat(),
-        'details': f"Factura {invoice_data['number']} recibida para procesamiento."
-    }]
-
-    # Calcular el hash del nuevo bloque
-    data_string_for_hash = (str(new_index) + 
-                            last_block_db.hash + 
-                            new_timestamp.isoformat() + 
-                            json.dumps(invoice_data, sort_keys=True))
-    new_hash = hashlib.sha256(data_string_for_hash.encode()).hexdigest()
-
-    new_block_db = BlockDB(
-        index=new_index,
-        timestamp=new_timestamp,
-        data=json.dumps(invoice_data),
-        previous_hash=last_block_db.hash,
-        hash=new_hash,
-        traceability=json.dumps(traceability)
-    )
-
-    db.session.add(new_block_db)
-    db.session.commit()
-
-    return jsonify({
-        'message': 'Factura registrada en el blockchain con éxito',
-        'block': {
-            'index': new_block_db.index,
-            'timestamp': new_block_db.timestamp.isoformat(),
-            'data': json.loads(new_block_db.data),
-            'previous_hash': new_block_db.previous_hash,
-            'hash': new_block_db.hash,
-            'traceability': json.loads(new_block_db.traceability)
-        }
-    }), 201
-
-# --- Servir la aplicación frontend ---
 @app.route('/')
-def serve_index():
-    return send_from_directory('.', 'xlerion_chain_improved.html')
+def home():
+    """Ruta de prueba para verificar que el servidor está funcionando."""
+    return "Servidor XlerionChainTaxs Backend funcionando!"
 
-# ===================================================================================
-# INICIALIZACIÓN Y ARRANQUE DEL SERVIDOR
-# ===================================================================================
+@app.route('/api/register', methods=['POST'])
+def register_user():
+    """Registra un nuevo usuario en la base de datos."""
+    data = request.json
+    fullname = data.get('fullname')
+    username = data.get('username').lower()
+    email = data.get('email')
+    password = data.get('password')
 
-with app.app_context():
-    db.create_all()
-    if not BlockDB.query.filter_by(index=0).first():
-        genesis_timestamp = datetime.utcnow()
-        genesis_data_string = "0" + "0" + genesis_timestamp.isoformat() + json.dumps("Bloque Génesis")
-        genesis_hash = hashlib.sha256(genesis_data_string.encode()).hexdigest()
-        
-        genesis_block_db = BlockDB(
-            index=0,
-            timestamp=genesis_timestamp,
-            data=json.dumps("Bloque Génesis"),
-            previous_hash="0",
-            traceability=json.dumps([]),
-            hash=genesis_hash
-        )
-        db.session.add(genesis_block_db)
-        db.session.commit()
+    if not all([fullname, username, email, password]):
+        return jsonify({"message": "Todos los campos son obligatorios."}), 400
+    if len(password) < 8:
+        return jsonify({"message": "La contraseña debe tener al menos 8 caracteres."}), 400
 
+    hashed_password = hash_password(password)
+
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"message": "Error interno del servidor."}), 500
+
+    try:
+        with connection.cursor() as cursor:
+            # Verificar si el usuario ya existe
+            cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+            if cursor.fetchone():
+                return jsonify({"message": "El nombre de usuario ya existe."}), 409
+
+            # Insertar nuevo usuario
+            sql = "INSERT INTO users (fullname, username, email, password_hash) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (fullname, username, email, hashed_password))
+        connection.commit()
+        return jsonify({"message": "Usuario registrado exitosamente."}), 201
+    except Exception as e:
+        connection.rollback()
+        print(f"Error al registrar usuario: {e}")
+        return jsonify({"message": "Error interno del servidor al registrar usuario."}), 500
+    finally:
+        connection.close()
+
+@app.route('/api/login', methods=['POST'])
+def login_user():
+    """Autentica un usuario y devuelve sus datos."""
+    data = request.json
+    username = data.get('username').lower()
+    password = data.get('password')
+
+    if not all([username, password]):
+        return jsonify({"message": "Usuario y contraseña son obligatorios."}), 400
+
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"message": "Error interno del servidor."}), 500
+
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT id, fullname, username, password_hash FROM users WHERE username = %s"
+            cursor.execute(sql, (username,))
+            user = cursor.fetchone()
+
+            if user and user['password_hash'] == hash_password(password):
+                # No devolver el hash de la contraseña al frontend
+                return jsonify({
+                    "message": "Inicio de sesión exitoso.",
+                    "user": {"username": user['username'], "fullname": user['fullname']}
+                }), 200
+            else:
+                return jsonify({"message": "Usuario o contraseña incorrectos."}), 401
+    except Exception as e:
+        print(f"Error al iniciar sesión: {e}")
+        return jsonify({"message": "Error interno del servidor al iniciar sesión."}), 500
+    finally:
+        connection.close()
+
+@app.route('/api/blocks', methods=['POST'])
+def add_block():
+    """Añade un nuevo bloque a la cadena en la base de datos."""
+    data = request.json
+    block_data = data.get('data')
+    traceability = data.get('traceability')
+    previous_hash = data.get('previousHash')
+    block_index = data.get('index')
+    block_hash = data.get('hash')
+    timestamp_iso = data.get('timestamp')
+    created_by = data.get('createdBy') # Asegúrate de enviar esto desde el frontend
+
+    if not all([block_data, traceability, previous_hash, block_index is not None, block_hash, timestamp_iso, created_by]):
+        return jsonify({"message": "Datos de bloque incompletos."}), 400
+
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"message": "Error interno del servidor."}), 500
+
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            INSERT INTO blocks (block_index, timestamp_iso, data, previous_hash, hash, traceability, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(sql, (
+                block_index,
+                timestamp_iso,
+                json.dumps(block_data), # Convertir dict a JSON string
+                previous_hash,
+                block_hash,
+                json.dumps(traceability), # Convertir list a JSON string
+                created_by
+            ))
+        connection.commit()
+        return jsonify({"message": "Bloque añadido exitosamente.", "block_hash": block_hash}), 201
+    except pymysql.err.IntegrityError as e:
+        connection.rollback()
+        if "Duplicate entry" in str(e) and "for key 'hash'" in str(e):
+            return jsonify({"message": "Error: El hash del bloque ya existe."}), 409
+        print(f"Error de integridad al añadir bloque: {e}")
+        return jsonify({"message": "Error interno del servidor al añadir bloque (integridad).", "error": str(e)}), 500
+    except Exception as e:
+        connection.rollback()
+        print(f"Error al añadir bloque: {e}")
+        return jsonify({"message": "Error interno del servidor al añadir bloque."}), 500
+    finally:
+        connection.close()
+
+@app.route('/api/blocks', methods=['GET'])
+def get_blocks():
+    """Recupera todos los bloques de la base de datos."""
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"message": "Error interno del servidor."}), 500
+
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT block_index as `index`, timestamp_iso as timestamp, data, previous_hash as previousHash, hash, traceability, created_by as createdBy FROM blocks ORDER BY block_index ASC"
+            cursor.execute(sql)
+            blocks = cursor.fetchall()
+            
+            # Convertir campos JSON de vuelta a objetos Python
+            for block in blocks:
+                block['data'] = json.loads(block['data'])
+                block['traceability'] = json.loads(block['traceability'])
+            
+            return jsonify(blocks), 200
+    except Exception as e:
+        print(f"Error al obtener bloques: {e}")
+        return jsonify({"message": "Error interno del servidor al obtener bloques."}), 500
+    finally:
+        connection.close()
+
+@app.route('/api/blocks/search', methods=['GET'])
+def search_blocks():
+    """Busca bloques en la base de datos según los parámetros de consulta."""
+    company_name = request.args.get('companyName', '').lower()
+    nit = request.args.get('nit', '')
+    invoice_number = request.args.get('invoiceNumber', '')
+    start_date = request.args.get('startDate', '')
+    end_date = request.args.get('endDate', '')
+
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"message": "Error interno del servidor."}), 500
+
+    try:
+        with connection.cursor() as cursor:
+            # La búsqueda en campos JSON es un poco más compleja en SQL puro.
+            # Podrías necesitar usar funciones JSON_EXTRACT o LIKE en el JSON string.
+            # Para simplificar, aquí se muestra una aproximación.
+            # Para búsquedas eficientes en JSON, MySQL 5.7+ tiene JSON_CONTAINS, JSON_EXTRACT.
+            # Para MariaDB, JSON_VALUE o JSON_EXTRACT.
+
+            conditions = []
+            params = []
+
+            if company_name:
+                conditions.append("JSON_EXTRACT(data, '$.companyName') LIKE %s")
+                params.append(f"%{company_name}%")
+            if nit:
+                conditions.append("JSON_EXTRACT(data, '$.companyNit') LIKE %s")
+                params.append(f"%{nit}%")
+            if invoice_number:
+                conditions.append("JSON_EXTRACT(data, '$.number') LIKE %s")
+                params.append(f"%{invoice_number}%")
+            if start_date:
+                conditions.append("timestamp_iso >= %s")
+                params.append(start_date)
+            if end_date:
+                conditions.append("timestamp_iso <= %s")
+                params.append(end_date)
+
+            sql = "SELECT block_index as `index`, timestamp_iso as timestamp, data, previous_hash as previousHash, hash, traceability, created_by as createdBy FROM blocks"
+            if conditions:
+                sql += " WHERE " + " AND ".join(conditions)
+            
+            sql += " ORDER BY block_index DESC" # Ordenar por índice descendente para los más recientes
+
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+
+            # Convertir campos JSON de vuelta a objetos Python
+            for block in results:
+                block['data'] = json.loads(block['data'])
+                block['traceability'] = json.loads(block['traceability'])
+            
+            return jsonify(results), 200
+    except Exception as e:
+        print(f"Error al buscar bloques: {e}")
+        return jsonify({"message": "Error interno del servidor al buscar bloques."}), 500
+    finally:
+        connection.close()
+
+# Para ejecutar la aplicación Flask
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Usar puerto 5000 por defecto para desarrollo
+    # En producción, usar un servidor WSGI como Gunicorn o mod_wsgi
+    app.run(debug=True, host='0.0.0.0', port=5000)
