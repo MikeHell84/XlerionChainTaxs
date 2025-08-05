@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xlerion BlockChain Gov - Sistema de Trazabilidad IVA v2.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.s" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #f7fafc;
+            min-height: 100vh;
+        }
+
+        .glass-effect {
+            background: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(48, 54, 61, 0.3);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-btn.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 100;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(45deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center p-8">
+
+    <!-- Notificación emergente -->
+    <div id="notification" class="notification w-full max-w-sm">
+        <div class="bg-green-600 text-white text-sm font-semibold px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+            <i class="fas fa-check-circle"></i>
+            <span id="notification-message">¡Operación exitosa!</span>
+        </div>
+    </div>
+
+    <!-- Overlay de carga -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 rounded-full animate-spin border-4 border-dashed border-blue-500 border-t-transparent"></div>
+            <p class="text-white text-lg mt-4">Procesando transacción...</p>
+        </div>
+    </div>
+
+    <!-- Contenedor principal de la aplicación -->
+    <div id="app-container" class="w-full max-w-7xl mx-auto space-y-8">
+        <!-- Encabezado y título -->
+        <header class="flex justify-between items-center w-full pb-4 border-b border-gray-700">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-cube text-4xl text-blue-500"></i>
+                <h1 class="text-3xl font-bold">Xlerion BlockChain Gov</h1>
+            </div>
+            <div id="user-info" class="flex items-center space-x-4 hidden">
+                <p class="text-gray-300">Bienvenido, <span id="user-name" class="font-semibold text-white"></span></p>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Contenedor de autenticación (Login/Register) -->
+        <div id="auth-container" class="flex flex-col items-center justify-center p-8 rounded-xl glass-effect text-center max-w-md mx-auto">
+            <img src="https://placehold.co/100x100/3B82F6/ffffff?text=Logo" alt="Logo de la aplicación" class="mb-6 rounded-full">
+            <h2 class="text-2xl font-bold mb-2">¡Bienvenido!</h2>
+            <p class="text-gray-400 mb-6">Inicia sesión o regístrate para continuar.</p>
+
+            <!-- Formulario de Login -->
+            <form id="login-form" class="w-full space-y-4">
+                <input type="text" id="login-username" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="password" id="login-password" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Iniciar Sesión</button>
+                <div class="text-gray-400 mt-4">
+                    ¿No tienes una cuenta? <a href="#" id="show-register" class="text-blue-500 hover:underline font-semibold">Regístrate</a>
+                </div>
+            </form>
+
+            <!-- Formulario de Registro (inicialmente oculto) -->
+            <form id="register-form" class="w-full space-y-4 hidden">
+                <input type="text" id="register-fullname" placeholder="Nombre completo" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="register-username" placeholder="Nombre de usuario" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="email" id="register-email" placeholder="Correo electrónico" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="password" id="register-password" placeholder="Contraseña" required class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">Registrarse</button>
+                <button type="button" id="register-back" class="w-full text-gray-400 mt-4 hover:underline">Volver al Login</button>
+            </form>
+        </div>
+
+        <!-- Dashboard principal (inicialmente oculto) -->
+        <div id="main-dashboard" class="hidden">
+            <div class="bg-gray-900 rounded-xl glass-effect p-6 mb-8">
+                <div class="flex space-x-2 border-b border-gray-700 mb-6">
+                    <button data-tab="create-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold active">Crear Factura</button>
+                    <button data-tab="ledger-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Ledger</button>
+                    <button data-tab="search-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Búsqueda</button>
+                    <button data-tab="stats-tab" class="tab-btn pb-3 px-4 text-gray-400 hover:text-blue-500 font-semibold">Estadísticas</button>
+                </div>
+                
+                <div class="p-4">
+                    <!-- Pestaña Crear Factura -->
+                    <div id="create-tab" class="tab-content">
+                        <h3 class="text-xl font-bold mb-6">Registrar Nueva Factura</h3>
+                        <form id="invoice-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="invoice-number" class="block text-sm font-medium mb-2">Número de Factura</label>
+                                <input type="text" id="invoice-number" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="company-name" class="block text-sm font-medium mb-2">Nombre de Empresa</label>
+                                <input type="text" id="company-name" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="company-nit" class="block text-sm font-medium mb-2">NIT de Empresa</label>
+                                <input type="text" id="company-nit" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="subtotal" class="block text-sm font-medium mb-2">Subtotal ($)</label>
+                                <input type="number" id="subtotal" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="iva-amount" class="block text-sm font-medium mb-2">Valor del IVA (19%)</label>
+                                <input type="text" id="iva-amount" readonly class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 cursor-not-allowed">
+                            </div>
+                            <div class="md:col-span-2 mt-4">
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors">
+                                    <i class="fas fa-plus-circle mr-2"></i>
+                                    Añadir Factura al Blockchain
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Pestaña Ledger -->
+                    <div id="ledger-tab" class="tab-content hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Registro de Transacciones (Ledger)</h3>
+                            <button id="validate-blockchain" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-xl transition-colors">
+                                <i class="fas fa-fingerprint mr-2"></i>
+                                Validar Blockchain
+                            </button>
+                        </div>
+                        <div id="blockchain-ledger" class="space-y-6">
+                            <!-- Los bloques del blockchain se renderizarán aquí -->
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Búsqueda -->
+                    <div id="search-tab" class="tab-content hidden">
+                        <h3 class="text-xl font-bold mb-6">Buscar Facturas</h3>
+                        <form id="search-form" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input type="text" id="search-company" placeholder="Nombre de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <input type="text" id="search-nit" placeholder="NIT de Empresa" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <input type="text" id="search-invoice" placeholder="Número de Factura" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="date" id="search-date-from" title="Desde la fecha" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <input type="date" id="search-date-to" title="Hasta la fecha" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                </div>
+                            </div>
+                            <button type="submit" id="search-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors mb-6">
+                                <i class="fas fa-search mr-2"></i>
+                                Buscar
+                            </button>
+                        </form>
+                        <div id="search-results" class="space-y-4">
+                            <!-- Resultados de búsqueda -->
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Estadísticas -->
+                    <div id="stats-tab" class="tab-content hidden">
+                        <h3 class="text-xl font-bold mb-6">Estadísticas y Distribución del IVA</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="glass-effect rounded-xl p-6">
+                                <h4 class="text-lg font-semibold mb-4">Resumen General</h4>
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div class="p-4 rounded-lg bg-gray-800">
+                                        <p class="text-sm text-gray-400">Total de Facturas</p>
+                                        <p id="total-invoices" class="text-3xl font-bold text-blue-400">0</p>
+                                    </div>
+                                    <div class="p-4 rounded-lg bg-gray-800">
+                                        <p class="text-sm text-gray-400">IVA Recaudado</p>
+                                        <p id="total-iva" class="text-2xl font-bold gradient-text">0</p>
+                                    </div>
+                                    <div class="p-4 rounded-lg bg-gray-800">
+                                        <p class="text-sm text-gray-400">Monto Total</p>
+                                        <p id="total-amount" class="text-2xl font-bold gradient-text">0</p>
+                                    </div>
+                                    <div class="p-4 rounded-lg bg-gray-800">
+                                        <p class="text-sm text-gray-400">Promedio por Factura</p>
+                                        <p id="avg-invoice" class="text-2xl font-bold text-blue-400">0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="glass-effect rounded-xl p-6">
+                                <h4 class="text-lg font-semibold mb-4">Distribución por Sectores</h4>
+                                <canvas id="sector-chart" width="400" height="400"></canvas>
+                                <div id="sector-details" class="mt-6 space-y-3">
+                                    <!-- Detalles de sectores -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app_improved.js"></script>
+</body>
+</html>
